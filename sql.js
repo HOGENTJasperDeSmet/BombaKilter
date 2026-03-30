@@ -7,13 +7,35 @@ let db = null;
 
 const listEl = document.getElementById('climb-list');
 const infoEl = document.getElementById('page-info');
-const pageNumEl = document.getElementById('page-number');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
 const nameInput = document.getElementById('filter-name');
 const angleInput = document.getElementById('filter-angle');
 const diffMinInput = document.getElementById('filter-diff-min');
 const diffMaxInput = document.getElementById('filter-diff-max');
+
+let isFetching = false;
+const sentinel = document.getElementById('infinite-sentinel');
+const spinner = document.getElementById('spinner');
+
+observer.observe(sentinel);
+
+init().catch(err => {
+  infoEl.innerText = "Error loading database.";
+  console.error(err);
+});
+
+async function init() {
+  const [SQL, buffer] = await Promise.all([
+    initSqlJs({ locateFile: file => `./sql-wasm.wasm` }),
+    loadDatabase()
+  ]);
+
+  db = new SQL.Database(buffer);
+
+  const countResult = db.exec('SELECT COUNT(*) FROM climbs ');
+  totalClimbs = countResult[0].values[0][0];
+
+  updateList();
+}
 
 async function loadDatabase() {
   await requestPersistence();
@@ -24,12 +46,10 @@ async function loadDatabase() {
 
   const cachedResponse = await cache.match(DB_URL);
   if (cachedResponse) {
-    console.log("Found DB in Cache.");
     const buffer = await cachedResponse.arrayBuffer();
     return new Uint8Array(buffer);
   }
 
-  // Show the progress bar container
   const downloadContainer = document.getElementById('download-container');
   const progressBar = document.getElementById('download-progress-bar');
   const progressText = document.getElementById('download-percent');
@@ -62,7 +82,6 @@ async function loadDatabase() {
     }
   }
 
-  // Combine chunks into a single Uint8Array
   let chunksAll = new Uint8Array(receivedLength);
   let position = 0;
   for (let chunk of chunks) {
@@ -70,10 +89,8 @@ async function loadDatabase() {
     position += chunk.length;
   }
 
-  // Cache the completed file for next time
   await cache.put(DB_URL, new Response(chunksAll));
 
-  // Hide progress bar and cleanup
   downloadContainer.classList.add('hidden');
   infoEl.innerText = "Database Loaded.";
 
@@ -96,25 +113,7 @@ async function requestPersistence() {
   return false;
 }
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function init() {
-  const [SQL, buffer] = await Promise.all([
-    initSqlJs({ locateFile: file => `./sql-wasm.wasm` }),
-    loadDatabase()
-  ]);
-
-  db = new SQL.Database(buffer);
-
-  const countResult = db.exec('SELECT COUNT(*) FROM climbs ');
-  totalClimbs = countResult[0].values[0][0];
-
-  updateList();
-}
-
-let isFetching = false;
-const sentinel = document.getElementById('infinite-sentinel');
-const spinner = document.getElementById('spinner');
 
 const observer = new IntersectionObserver((entries) => {
   if (entries[0].isIntersecting && !isFetching && (currentPage * PAGE_SIZE < totalClimbs)) {
@@ -123,7 +122,7 @@ const observer = new IntersectionObserver((entries) => {
   }
 }, { threshold: 0.1 });
 
-observer.observe(sentinel);
+
 
 function updateList(append = false) {
   if (isFetching) return;
@@ -145,8 +144,6 @@ function updateList(append = false) {
   params.push(minV, maxV);
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : "";
-
-  // Get Data
   const dataSql = `SELECT c.name, cs.display_difficulty, c.frames, cs.ascensionist_count 
                      FROM climbs c 
                      JOIN climb_stats cs ON c.uuid = cs.climb_uuid 
@@ -155,15 +152,12 @@ function updateList(append = false) {
                      LIMIT ${PAGE_SIZE} OFFSET ${offset}`;
 
   const result = db.exec(dataSql, params);
-
-  // Render logic
   renderUI(result, append);
 
   isFetching = false;
   spinner.classList.add('hidden');
 }
 
-// Reset when filters change
 const handleFilterChange = debounce(async () => {
   currentPage = 0;
   listEl.innerHTML = ""; // Clear list for new search
@@ -179,10 +173,6 @@ const handleFilterChange = debounce(async () => {
 
 
 
-init().catch(err => {
-  infoEl.innerText = "Error loading database.";
-  console.error(err);
-});
 
 
 function renderUI(result, append) {
