@@ -16,6 +16,13 @@ let isFetching = false;
 const sentinel = document.getElementById('infinite-sentinel');
 const spinner = document.getElementById('spinner');
 
+const observer = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && !isFetching && (currentPage * PAGE_SIZE < totalClimbs)) {
+    currentPage++;
+    updateList(true);
+  }
+}, { threshold: 0.1 });
+
 observer.observe(sentinel);
 
 init().catch(err => {
@@ -115,12 +122,6 @@ async function requestPersistence() {
 
 
 
-const observer = new IntersectionObserver((entries) => {
-  if (entries[0].isIntersecting && !isFetching && (currentPage * PAGE_SIZE < totalClimbs)) {
-    currentPage++;
-    updateList(true);
-  }
-}, { threshold: 0.1 });
 
 
 
