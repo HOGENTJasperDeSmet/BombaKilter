@@ -1,7 +1,6 @@
 import initSqlJs from 'sql.js';
 import { registerSW } from 'virtual:pwa-register';
 
-
 const PAGE_SIZE = 15;
 let currentPage = 0;
 let totalClimbs = 0;
@@ -13,17 +12,14 @@ const nameInput = document.getElementById('filter-name');
 const angleInput = document.getElementById('filter-angle');
 const diffMinInput = document.getElementById('filter-diff-min');
 const diffMaxInput = document.getElementById('filter-diff-max');
-
-let isFetching = false;
 const sentinel = document.getElementById('infinite-sentinel');
 const spinner = document.getElementById('spinner');
 
-const observer = new IntersectionObserver((entries) => {
-  if (entries[0].isIntersecting && !isFetching && (currentPage * PAGE_SIZE < totalClimbs)) {
-    currentPage++;
-    updateList(true);
-  }
-}, { threshold: 0.1 });
+let isFetching = false;
+
+const observer = new IntersectionObserver(handleIntersection, {
+  threshold: 0.1
+});
 
 registerSW({ immediate: true });
 observer.observe(sentinel);
@@ -40,13 +36,12 @@ async function init() {
   ]);
 
   db = new SQL.Database(buffer);
-
   const countResult = db.exec('SELECT COUNT(*) FROM climbs ');
   totalClimbs = countResult[0].values[0][0];
-
   updateList();
 }
 
+//LOGIC FUNCTIONS
 async function loadDatabase() {
   await requestPersistence();
 
@@ -123,14 +118,20 @@ async function requestPersistence() {
   return false;
 }
 
+function handleIntersection(entries) {
+  const [entry] = entries;
+  const canLoadMore = currentPage * PAGE_SIZE < totalClimbs;
 
-
-
+  if (entry.isIntersecting && !isFetching && canLoadMore) {
+    currentPage++;
+    updateList(true);
+  }
+};
 
 
 function updateList(append = false) {
   if (isFetching) return;
-  debugger;
+
   isFetching = true;
   spinner.classList.remove('hidden');
 
@@ -138,7 +139,6 @@ function updateList(append = false) {
   let conditions = [];
   let params = [];
 
-  // Filter Logic (Keep your existing filtering logic here)
   if (nameInput.value) { conditions.push("c.name LIKE ?"); params.push(`%${nameInput.value}%`); }
   if (angleInput.value) { conditions.push("cs.angle = ?"); params.push(angleInput.value); }
 
@@ -164,7 +164,7 @@ function updateList(append = false) {
 
 const handleFilterChange = debounce(async () => {
   currentPage = 0;
-  listEl.innerHTML = ""; // Clear list for new search
+  listEl.innerHTML = "";
   updateList(false);
 }, 300);
 
@@ -174,10 +174,6 @@ const handleFilterChange = debounce(async () => {
     handleFilterChange();
   });
 });
-
-
-
-
 
 function renderUI(result, append) {
   const climbs = result.length > 0 ? result[0].values.map(row => ({
@@ -191,10 +187,9 @@ function renderUI(result, append) {
   const baseUrl = "https://grip-connect-kilter-board.vercel.app/";
 
   const cardsHtml = climbs.map(climb => {
-    const routeUrl = `${baseUrl}?route=${encodeURIComponent(climb.frames)}`;
     return `
       <div class="group flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-900 hover:shadow-sm transition-all cursor-pointer" 
-           onclick="window.open('${routeUrl}', '_blank')">
+           onclick="selectRoute('${climb.frames}')">
         <div class="space-y-1">
           <h3 class="font-semibold text-sm leading-none text-slate-900 group-hover:text-black">${climb.name}</h3>
           <div class="flex items-center gap-2">
@@ -216,8 +211,6 @@ function renderUI(result, append) {
     listEl.innerHTML = cardsHtml;
   }
 }
-
-
 
 function formatVGrade(floatDifficulty) {
   const gradeMap = {

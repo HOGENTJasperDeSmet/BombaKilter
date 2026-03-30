@@ -1,0 +1,186 @@
+body{
+  background-color: #f8fafc;
+  color: #020617;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+aside {
+  width: 100%;
+  background-color: #ffffff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.filters{
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+.filters > * + * {
+  margin-top: 1rem;
+}
+.filters .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header h1 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.75rem;
+  letter-spacing: -0.025em;
+}
+.header p {
+  font-size: 11px;
+  line-height: 1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+.download-progress {
+  margin-top: 0.5rem;
+}
+
+.hidden {
+  display: none;
+}
+.download-info{
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.download-bar{
+  height: 4px;
+  width: 100%;
+  background-color: #e2e8f0;
+  overflow: hidden;
+}
+.download-bar .progress{
+  height: 100%;
+  background-color: #1e293b;
+  transition: width 0.3s ease;
+}
+
+.board-container {
+  display: none; /* Hidden by default on mobile until a route is clicked */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  z-index: 50; /* Sits on top of everything */
+  flex-direction: column;
+  padding: 20px;
+}
+
+.board-container.active {
+  display: flex;
+}
+
+.close-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+.responsive-board {
+  max-width: 100%;         
+  max-height: 100%;    
+  width: auto;            
+  height: auto;     
+}
+
+.header {
+  display: flex;
+  align-items: center;       /* Vertical center */
+  justify-content: space-between; /* Pushes button to the far right */
+  width: 100%;
+}
+
+.btn-bluetooth-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: transparent;
+  border: none;             /* No border as requested */
+  color: #94a3b8;           /* Slate 400 (Disconnected) */
+  cursor: pointer;
+  border-radius: 8px;       /* Subtle rounded corners for hover state */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.btn-bluetooth-ghost:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-bluetooth-ghost.connected {
+  color: #3b82f6;           /* Blue 500 */
+}
+
+.btn-bluetooth-ghost.connected:hover {
+  background-color: #eff6ff;
+}
+
+.btn-bluetooth-ghost.connecting {
+  animation: pulse-blue 1.5s infinite;
+}
+@keyframes pulse-blue {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+
+.btn-icon.connected:hover {
+  background-color: #dbeafe;
+}
+
+/* Ensure Board doesn't overflow */
+.board-container {
+  overflow: hidden;
+  background-color: white;
+}
+
+@media (min-width: 768px) {
+.app { flex-direction: row; }
+  
+  .board-container {
+    display: flex !important; /* Always show on desktop */
+    position: relative;
+    flex: 1;
+    z-index: 1;
+    border-left: 1px solid #e2e8f0;
+  }
+
+  .close-btn { display: none; } /* Hide back button on desktop */
+  
+  aside { width: 400px; }
+}
+
+#download-progress-bar {
+  transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
