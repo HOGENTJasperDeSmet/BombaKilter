@@ -35,6 +35,7 @@ aside {
   line-height: 1.75rem;
   letter-spacing: -0.025em;
 }
+
 .header p {
   font-size: 11px;
   line-height: 1rem;
@@ -73,37 +74,6 @@ aside {
   transition: width 0.3s ease;
 }
 
-.board-container {
-  display: none; /* Hidden by default on mobile until a route is clicked */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: white;
-  z-index: 50; /* Sits on top of everything */
-  flex-direction: column;
-  padding: 20px;
-}
-
-.board-container.active {
-  display: flex;
-}
-
-.close-btn {
-  align-self: flex-start;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 20px;
-  background: none;
-  border: none;
-  color: #64748b;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-}
 .responsive-board {
   max-width: 100%;         
   max-height: 100%;    
@@ -159,17 +129,61 @@ aside {
   background-color: #dbeafe;
 }
 
-/* Ensure Board doesn't overflow */
 .board-container {
-  overflow: hidden;
+  display: none; /* Hidden by default on mobile until a route is clicked */
+  position: fixed;
+  grid-template-columns: max-content; 
+  grid-template-rows: auto 1fr auto; 
+  justify-content: center;         
+    padding: 20px;
+    width: 100%;
+    height: 100%;
+  margin: 0 auto;
   background-color: white;
 }
+.board-container h1 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.75rem;
+  letter-spacing: -0.025em;
+}
+.board-info {
+  padding: 20px;
+}
+.board-container.active {
+  display: grid;
+}
+.board-info, 
+.board-image, 
+.board-actions {
+  width: 100%; 
+}
 
+.board-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 0; 
+}
+
+.responsive-board {
+
+  height: 100%; 
+  width: auto;
+  display: block;
+  max-width: 100vw; 
+}
+
+.responsive-board {
+  height: 100%;
+  width: auto;  
+  display: block;
+}
 @media (min-width: 768px) {
 .app { flex-direction: row; }
   
   .board-container {
-    display: flex !important; /* Always show on desktop */
+    display: grid !important; /* Always show on desktop */
     position: relative;
     flex: 1;
     z-index: 1;
@@ -183,4 +197,7 @@ aside {
 
 #download-progress-bar {
   transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.board{
+  max-width: 720px;
 }

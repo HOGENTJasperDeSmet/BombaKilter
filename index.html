@@ -6,9 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chilterboarding</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <script type="module" src="Javascript/main.js"></script>
+  <script type="module" src="Javascript/device.js"></script>
   <link rel="stylesheet" href="main.css">
-  <script type="module" src="/main.js"></script>
-  <script type="module" src="/device.js"></script>
 
 </head>
 
@@ -109,20 +110,35 @@
       </div>
     </aside>
     <main class="board-container" id="main-board">
-      <button id="close-board" class="close-btn" onclick="closeRoute()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        <span>Back to List</span>
-      </button>
+      <div class="board-info">
+        <button class="text-slate-500 hover:text-slate-900 transition-colors close-btn" onclick="history.back()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <h1 id="route-name" class="text-xl font-bold tracking-tight text-slate-900"></h1>
+            <p id="route-setter" class="text-sm text-blue-600 font-medium mb-3"></p>
+          </div>
+          <div id="route-angle"
+            class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold uppercase tracking-wider text-slate-600">
+          </div>
+        </div>
+        <p id="route-description" class="text-sm text-slate-500 leading-relaxed line-clamp-2">
+        </p>
+      </div>
 
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1170" id="svg-kb" class="responsive-board">
-        <image href="/img/kilterboard-large.svg" height="1170" width="1080"></image>
-        <image href="/img/kilterboard-small.svg" height="1170" width="1080"></image>
-      </svg>
-    </main>
-  </div>
+      <div class="board-image">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1170" id="svg-kb" class="responsive-board">
+          <image href="/img/kilterboard-large.svg" height="1170" width="1080"></image>
+          <image href="/img/kilterboard-small.svg" height="1170" width="1080"></image>
+        </svg>
+      </div>
+
+      <div class="board-actions">
+      </div>
 </body>
 
 </html>

@@ -1,10 +1,12 @@
 import initSqlJs from 'sql.js';
 import { registerSW } from 'virtual:pwa-register';
+import { debounce, formatVGrade } from './util.js';
+import { ClimbStore } from './ClimbStore.js';
 
 const PAGE_SIZE = 15;
 let currentPage = 0;
 let totalClimbs = 0;
-let db = null;
+export let db = null;
 
 const listEl = document.getElementById('climb-list');
 const infoEl = document.getElementById('page-info');
@@ -24,24 +26,26 @@ const observer = new IntersectionObserver(handleIntersection, {
 registerSW({ immediate: true });
 observer.observe(sentinel);
 
-init().catch(err => {
-  infoEl.innerText = "Error loading database.";
-  console.error(err);
-});
-
-async function init() {
+export const databaseReady = (async () => {
   const [SQL, buffer] = await Promise.all([
-    initSqlJs({ locateFile: file => `./sql-wasm.wasm` }),
+    initSqlJs({ locateFile: () => `./sql-wasm.wasm` }),
     loadDatabase()
   ]);
 
   db = new SQL.Database(buffer);
+
   const countResult = db.exec('SELECT COUNT(*) FROM climbs ');
   totalClimbs = countResult[0].values[0][0];
-  updateList();
-}
 
-//LOGIC FUNCTIONS
+  console.log("Database initialized and ready.");
+
+  return db;
+})();
+
+databaseReady.then(() => {
+  updateList();
+});
+
 async function loadDatabase() {
   await requestPersistence();
 
@@ -101,13 +105,6 @@ async function loadDatabase() {
 
   return chunksAll;
 }
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), delay);
-  };
-}
 
 async function requestPersistence() {
   if (navigator.storage && navigator.storage.persist) {
@@ -127,6 +124,18 @@ function handleIntersection(entries) {
     updateList(true);
   }
 };
+
+export function getRouteFromId(uuid) {
+  const dataSql = `SELECT c.uuid, c.name, cs.angle, c.description, c.setter_username, cs.display_difficulty, c.frames, cs.ascensionist_count, cs.quality_average 
+                     FROM climbs c 
+                     JOIN climb_stats cs ON c.uuid = cs.climb_uuid 
+                     WHERE c.uuid = '${uuid}'
+                     ORDER BY cs.ascensionist_count DESC 
+                    `;
+
+  const result = db.exec(dataSql);
+  ClimbStore.addRoute(result);
+}
 
 
 function updateList(append = false) {
@@ -148,7 +157,7 @@ function updateList(append = false) {
   params.push(minV, maxV);
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : "";
-  const dataSql = `SELECT c.name, cs.display_difficulty, c.frames, cs.ascensionist_count 
+  const dataSql = `SELECT c.uuid, c.name, cs.display_difficulty, c.frames, cs.ascensionist_count 
                      FROM climbs c 
                      JOIN climb_stats cs ON c.uuid = cs.climb_uuid 
                      ${whereClause} 
@@ -156,7 +165,10 @@ function updateList(append = false) {
                      LIMIT ${PAGE_SIZE} OFFSET ${offset}`;
 
   const result = db.exec(dataSql, params);
-  renderUI(result, append);
+
+  const mappedRoutes = ClimbStore.setRoutes(result, append);
+
+  renderUI(mappedRoutes, append);
 
   isFetching = false;
   spinner.classList.add('hidden');
@@ -175,26 +187,29 @@ const handleFilterChange = debounce(async () => {
   });
 });
 
-function renderUI(result, append) {
-  const climbs = result.length > 0 ? result[0].values.map(row => ({
-    name: row[0],
-    difficulty: row[1],
-    frames: row[2],
-    ascents: row[3],
-    vGrade: formatVGrade(row[1])
-  })) : [];
+function renderUI(climbs, append) {
+  const listContainer = document.getElementById('climb-list');
 
-  const baseUrl = "https://grip-connect-kilter-board.vercel.app/";
+  if (!append) {
+    listContainer.innerHTML = '';
+  }
 
+  if (climbs.length === 0 && !append) {
+    listContainer.innerHTML = `
+      <div class="py-12 text-center">
+        <p class="text-sm text-slate-400 italic">No routes found matching those filters.</p>
+      </div>`;
+    return;
+  }
   const cardsHtml = climbs.map(climb => {
     return `
       <div class="group flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-900 hover:shadow-sm transition-all cursor-pointer" 
-           onclick="selectRoute('${climb.frames}')">
+           onclick="selectRoute('${climb.uuid}')">
         <div class="space-y-1">
           <h3 class="font-semibold text-sm leading-none text-slate-900 group-hover:text-black">${climb.name}</h3>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">${climb.vGrade}</span>
-            <span class="text-[10px] text-slate-500 font-medium">${climb.ascents.toLocaleString()} ascents</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">${formatVGrade(climb.display_difficulty)}</span>
+            <span class="text-[10px] text-slate-500 font-medium">${climb.ascensionist_count.toLocaleString()} ascents</span>
           </div>
         </div>
         <div class="text-slate-300 group-hover:text-slate-900 transition-colors">
@@ -203,29 +218,7 @@ function renderUI(result, append) {
       </div>
     `;
   }).join('');
-  infoEl.innerText = "Ready";
-  const listEl = document.getElementById('climb-list');
-  if (append) {
-    listEl.insertAdjacentHTML('beforeend', cardsHtml);
-  } else {
-    listEl.innerHTML = cardsHtml;
-  }
+
+  listContainer.insertAdjacentHTML('beforeend', cardsHtml);
 }
 
-function formatVGrade(floatDifficulty) {
-  const gradeMap = {
-    10: "V0", 11: "V0",
-    12: "V1", 13: "V1",
-    14: "V2", 15: "V2",
-    16: "V3", 17: "V3",
-    18: "V4", 19: "V4",
-    20: "V5", 21: "V5",
-    22: "V6", 23: "V7",
-    24: "V8", 25: "V9",
-    26: "V10", 27: "V11",
-    28: "V12", 29: "V13",
-    30: "V14", 31: "V15", 32: "V16"
-  };
-  const score = Math.round(floatDifficulty);
-  return gradeMap[score] || `V${score - 13}`; // Fallback calculation
-}

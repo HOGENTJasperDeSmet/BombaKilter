@@ -1,5 +1,7 @@
 import { KilterBoard, KilterBoardPlacementRoles } from "@hangtime/grip-connect"
-import { data } from "./data"
+import { data } from "./auroraBoardData"
+import { ClimbStore } from "./ClimbStore"
+import { databaseReady } from './main.js';
 
 const btn = document.getElementById('bluetooth-btn');
 const info = document.getElementById('page-info');
@@ -8,9 +10,6 @@ const device = new KilterBoard()
 const COORDINATE_MULTIPLIER = 7.5
 const DELTA_X = 0
 const DELTA_Y = 1170
-const KILTERBOARD_COLORS = generateKilterboardColors()
-
-
 
 let activeHolds = []
 
@@ -21,32 +20,28 @@ if (svg) {
   circles.forEach((circle) => svg.appendChild(circle))
 }
 
-const currentUrl = new URL(globalThis.location.href)
-const routeParam = currentUrl.searchParams.get("route")
+async function bootBoard() {
+  await databaseReady;
 
-if (routeParam) {
-  setFrames(routeParam)
-  updateSVG()
-  updatePayload()
+  const currentUrl = new URL(globalThis.location.href);
+  const routeParam = currentUrl.searchParams.get("route");
+
+  if (routeParam) {
+    loadRouteFromURL();
+  }
 }
 
+bootBoard();
 
 globalThis.addEventListener("popstate", () => {
-  console.log("URL changed, synchronizing route...")
-  loadRouteFromURL();
-});
-
-document.addEventListener('DOMContentLoaded', () => {
   loadRouteFromURL();
 });
 
 
 function setFrames(routeParam) {
-  // New format: h<holes_id>r<role> or h<holes_id>c<color>
   const newRoleMatches = routeParam.match(/h(\d+)r(\d+)/g)
   const newColorMatches = routeParam.match(/h(\d+)c([0-9A-Fa-f]{6})/g)
 
-  // Old format: p<placement_id>r<role> or p<placement_id>c<color> (for backward compatibility)
   const oldRoleMatches = routeParam.match(/p(\d+)r(\d+)/g)
   const oldColorMatches = routeParam.match(/p(\d+)c([0-9A-Fa-f]{6})/g)
 
@@ -55,10 +50,8 @@ function setFrames(routeParam) {
     return
   }
 
-  // Start fresh
   activeHolds.length = 0
 
-  // Handle new format (holes_id-based) - preferred
   if (newRoleMatches) {
     newRoleMatches.forEach((match) => {
       const [, holes_id, role_id] = match.match(/h(\d+)r(\d+)/) || []
@@ -131,41 +124,76 @@ function setFrames(routeParam) {
     })
   }
 }
-function selectRoute(frame) {
-  const newUrl = `${window.location.pathname}?route=${frame}`;
+function selectRoute(uuid) {
+
+  const urlParams = new URLSearchParams(window.location.search);
+  urlParams.set("route", uuid);
+
+  const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
   window.history.pushState({ path: newUrl }, '', newUrl);
+
   loadRouteFromURL();
-  const board = document.getElementById('main-board');
-  board.classList.add('active');
 };
 
 function closeRoute() {
-  const board = document.getElementById('main-board');
-  board.classList.remove('active');
+  const urlParams = new URLSearchParams(window.location.search);
+  urlParams.delete("route");
+
+  const queryString = urlParams.toString();
+  const newUrl = window.location.pathname + (queryString ? `?${queryString}` : '');
+
+  window.history.pushState({ path: newUrl }, '', newUrl);
+  loadRouteFromURL();
 }
 
 function loadRouteFromURL() {
   const urlParams = new URLSearchParams(globalThis.location.search);
   const routeParam = urlParams.get("route");
+  const board = document.getElementById('main-board');
 
   if (routeParam) {
+    if (board) board.classList.add('active');
+  } else {
+    if (board) board.classList.remove('active');
     clearSVG();
-    setFrames(routeParam);
+    return;
+  }
+
+  if (routeParam !== getFrames()) {
+    var route = ClimbStore.getRouteByUuid(routeParam)
+
+
+    renderRouteDetails(route);
+
+    clearSVG();
+    setFrames(route.frames);
     updateSVG();
 
-    if (typeof updatePayload === "function") updatePayload();
-
-    console.log("Route synchronized from URL.");
-  } else {
-    clearSVG();
-    activeHolds = [];
-    if (typeof updatePayload === "function") updatePayload();
+    if (typeof updatePayload === "function") {
+      updatePayload();
+    }
   }
 }
+function renderRouteDetails(route) {
+  if (!route) return;
 
+  const nameEl = document.getElementById('route-name');
+  const setterEl = document.getElementById('route-setter');
+  const descEl = document.getElementById('route-description');
+  const angleEl = document.getElementById('route-angle');
+
+  if (nameEl) nameEl.textContent = route.name || "Untitled Route";
+  if (setterEl) setterEl.textContent = `@${route.setter_username || "unknown"}`;
+
+  if (descEl) {
+    descEl.textContent = route.description || "No description provided.";
+  }
+  if (angleEl) {
+    angleEl.textContent = `${route.angle || "unknown"}°`;
+  }
+}
 function updateSVG() {
   activeHolds.forEach((hold) => {
-    // Find the corresponding circle element by its unique holes_id
     const circleId = hold.holes_id !== undefined ? `hold-${hold.holes_id}` : undefined
     const circle = circleId ? document.getElementById(circleId) : null
 
@@ -173,10 +201,8 @@ function updateSVG() {
       let color = null
 
       if (hold.color) {
-        // Use direct color if provided
         color = hold.color
       } else if (hold.role_id) {
-        // Fall back to role_id if no color provided
         const role = KilterBoardPlacementRoles.find((role) => role.id === hold.role_id)
         if (role) {
           color = role.screen_color
@@ -184,11 +210,9 @@ function updateSVG() {
       }
 
       if (color) {
-        // Update the circle's stroke and fill color
         circle.setAttribute("stroke", "#" + color)
         circle.setAttribute("fill", "#" + color)
       } else {
-        // Clear the circle if no color
         circle.setAttribute("stroke", "transparent")
         circle.setAttribute("fill", "transparent")
       }
