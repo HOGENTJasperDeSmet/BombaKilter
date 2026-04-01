@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/Chilterboard/',
+  base: '/chilterboard/',
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -13,7 +13,7 @@ export default defineConfig({
       manifest: {
         name: 'Kilter Board Browser',
         short_name: 'KilterPWA',
-        start_url: '/Chilterboard/',
+        start_url: '/chilterboard/',
         description: 'Offline Kilter Board Database',
         theme_color: '#000000',
         background_color: '#ffffff',

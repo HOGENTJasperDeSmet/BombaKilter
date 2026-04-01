@@ -2,6 +2,7 @@ import { KilterBoard, KilterBoardPlacementRoles } from "@hangtime/grip-connect"
 import { data } from "./auroraBoardData"
 import { ClimbStore } from "./ClimbStore"
 import { databaseReady } from './main.js';
+import Hammer from 'hammerjs';
 
 const btn = document.getElementById('bluetooth-btn');
 const info = document.getElementById('page-info');
@@ -124,10 +125,10 @@ function setFrames(routeParam) {
     })
   }
 }
-function selectRoute(uuid) {
+function selectRoute(id) {
 
   const urlParams = new URLSearchParams(window.location.search);
-  urlParams.set("route", uuid);
+  urlParams.set("route", id);
 
   const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
   window.history.pushState({ path: newUrl }, '', newUrl);
@@ -146,6 +147,60 @@ function closeRoute() {
   loadRouteFromURL();
 }
 
+function navigateRoute(direction) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentId = urlParams.get("route");
+
+  const allRoutes = ClimbStore.getAll();
+  const currentIndex = allRoutes.findIndex(r => r.id == currentId);
+
+  if (currentIndex === -1) return;
+
+  let newIndex;
+  if (direction === 'next') {
+    newIndex = (currentIndex + 1) % allRoutes.length;
+  } else {
+    newIndex = (currentIndex - 1 + allRoutes.length) % allRoutes.length;
+  }
+
+  const nextRoute = allRoutes[newIndex];
+  if (nextRoute) {
+    if (!document.startViewTransition) {
+      selectRoute(nextRoute.id);
+      return;
+    }
+
+    // The Magic Happens Here
+    document.startViewTransition(() => {
+      selectRoute(nextRoute.id);
+    });
+  }
+}
+
+export function initSwipeGestures() {
+  const boardElement = document.getElementById('main-board');
+  if (!boardElement) return;
+
+  const mc = new Hammer(boardElement);
+
+  mc.get('swipe').set({
+    direction: Hammer.DIRECTION_HORIZONTAL,
+    threshold: 10,
+    velocity: 0.3
+  });
+
+  mc.on("swipeleft", () => {
+    console.log("Next route...");
+    navigateRoute('next');
+  });
+
+  mc.on("swiperight", () => {
+    console.log("Previous route...");
+    navigateRoute('prev');
+  });
+}
+document.addEventListener('DOMContentLoaded', initSwipeGestures);
+
 function loadRouteFromURL() {
   const urlParams = new URLSearchParams(globalThis.location.search);
   const routeParam = urlParams.get("route");
@@ -160,7 +215,7 @@ function loadRouteFromURL() {
   }
 
   if (routeParam !== getFrames()) {
-    var route = ClimbStore.getRouteByUuid(routeParam)
+    var route = ClimbStore.getRouteById(routeParam)
 
 
     renderRouteDetails(route);
@@ -542,7 +597,7 @@ window.setupDevice = setupDevice;
 window.selectRoute = selectRoute;
 window.closeRoute = closeRoute;
 
-export { selectRoute, setupDevice, closeRoute };
+export { selectRoute, setupDevice, closeRoute, navigateRoute };
 
 function verifyAndParsePacket() {
 

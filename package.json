@@ -14,6 +14,7 @@
   "description": "",
   "dependencies": {
     "@hangtime/grip-connect": "^0.12.0",
+    "hammerjs": "^2.0.8",
     "sql.js": "^1.14.1",
     "vite": "^8.0.3"
   },

@@ -31,7 +31,7 @@ export const ClimbStore = {
     const route = {};
     columns.forEach((col, i) => route[col] = values[i]);
 
-    const index = this.routes.findIndex(r => r.uuid === route.uuid);
+    const index = this.routes.findIndex(r => r.id === route.id);
 
     if (index !== -1) {
       this.routes[index] = { ...this.routes[index], ...route };
@@ -41,9 +41,9 @@ export const ClimbStore = {
 
     return route;
   },
-  getRouteByUuid(uuid) {
-    getRouteFromId(uuid);
-    return this.routes.find(r => r.uuid === uuid);
+  getRouteById(id) {
+    getRouteFromId(id);
+    return this.routes.find(r => r.id == id);
   },
 
   getAll() {

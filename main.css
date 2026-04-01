@@ -8,7 +8,7 @@ body{
   height: 100vh;
 }
 
-aside {
+aside { 
   width: 100%;
   background-color: #ffffff;
   height: 100%;
@@ -80,7 +80,6 @@ aside {
   width: auto;            
   height: auto;     
 }
-
 .header {
   display: flex;
   align-items: center;       /* Vertical center */

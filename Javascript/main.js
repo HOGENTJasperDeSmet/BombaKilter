@@ -125,11 +125,11 @@ function handleIntersection(entries) {
   }
 };
 
-export function getRouteFromId(uuid) {
-  const dataSql = `SELECT c.uuid, c.name, cs.angle, c.description, c.setter_username, cs.display_difficulty, c.frames, cs.ascensionist_count, cs.quality_average 
+export function getRouteFromId(id) {
+  const dataSql = `SELECT c.id, c.name, cs.angle, c.description, c.setter_username, cs.display_difficulty, c.frames, cs.ascensionist_count, cs.quality_average 
                      FROM climbs c 
-                     JOIN climb_stats cs ON c.uuid = cs.climb_uuid 
-                     WHERE c.uuid = '${uuid}'
+                     JOIN climb_stats cs ON c.id = cs.climb_id
+                     WHERE c.id = '${id}'
                      ORDER BY cs.ascensionist_count DESC 
                     `;
 
@@ -157,9 +157,9 @@ function updateList(append = false) {
   params.push(minV, maxV);
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : "";
-  const dataSql = `SELECT c.uuid, c.name, cs.display_difficulty, c.frames, cs.ascensionist_count 
+  const dataSql = `SELECT c.id, c.name, cs.display_difficulty, c.frames, cs.ascensionist_count 
                      FROM climbs c 
-                     JOIN climb_stats cs ON c.uuid = cs.climb_uuid 
+                     JOIN climb_stats cs ON c.id = cs.climb_id 
                      ${whereClause} 
                      ORDER BY cs.ascensionist_count DESC 
                      LIMIT ${PAGE_SIZE} OFFSET ${offset}`;
@@ -204,7 +204,7 @@ function renderUI(climbs, append) {
   const cardsHtml = climbs.map(climb => {
     return `
       <div class="group flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-900 hover:shadow-sm transition-all cursor-pointer" 
-           onclick="selectRoute('${climb.uuid}')">
+           onclick="selectRoute('${climb.id}')">
         <div class="space-y-1">
           <h3 class="font-semibold text-sm leading-none text-slate-900 group-hover:text-black">${climb.name}</h3>
           <div class="flex items-center gap-2">
