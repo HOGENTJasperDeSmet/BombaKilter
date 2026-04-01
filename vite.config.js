@@ -12,7 +12,7 @@ export default defineConfig({
       },
       manifest: {
         name: 'Kilter Board Browser',
-        short_name: 'KilterPWA',
+        short_name: 'Chilterboard',
         start_url: '/chilterboard/',
         description: 'Offline Kilter Board Database',
         theme_color: '#000000',
